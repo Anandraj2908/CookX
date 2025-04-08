@@ -64,10 +64,7 @@ export default function Inventory() {
   // Handle item deletion
   const handleDeleteItem = async (id: number) => {
     try {
-      await apiRequest({
-        url: `/api/inventory/${id}`,
-        method: "DELETE"
-      });
+      await apiRequest("DELETE", `/api/inventory/${id}`);
       
       toast({
         title: "Success",
@@ -78,7 +75,6 @@ export default function Inventory() {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory/expiring/7"] });
     } catch (error) {
-      console.error("Error deleting item:", error);
       toast({
         title: "Error",
         description: "Failed to delete item",

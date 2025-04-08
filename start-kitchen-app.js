@@ -1,58 +1,46 @@
-// Simple script to start the kitchen application
-// Run with: node start-kitchen-app.js
+const { spawn } = require('child_process');
+const fs = require('fs');
 
-import { spawn } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-
+// Function to start the server with node
 async function startServer() {
-  console.log('Starting kitchen application server...');
+  console.log('Starting Kitchen Companion application...');
   
-  // Kill any existing process
+  // Kill any existing node processes that might be running the app
   try {
-    const pidFilePath = path.join(process.cwd(), 'app.pid');
-    if (fs.existsSync(pidFilePath)) {
-      const pid = fs.readFileSync(pidFilePath, 'utf8');
-      console.log(`Found existing process with PID: ${pid}, attempting to kill it...`);
-      try {
-        process.kill(parseInt(pid), 'SIGTERM');
-        console.log('Successfully terminated existing process');
-      } catch (err) {
-        console.log('Failed to kill process or process already terminated');
-      }
-      fs.unlinkSync(pidFilePath);
-    }
-  } catch (error) {
-    console.error('Error handling existing process:', error);
+    const pid = fs.readFileSync('./app.pid', 'utf8');
+    console.log(`Found existing app process with PID ${pid}, attempting to kill...`);
+    process.kill(pid, 'SIGTERM');
+    console.log('Killed existing app process');
+  } catch (err) {
+    // Ignore errors if no PID file exists or process isn't running
   }
-
+  
   // Start the server
-  const server = spawn('node', ['kitchen_app.mjs'], {
+  const server = spawn('node', ['--no-warnings', 'kitchen_app.js'], {
     stdio: 'inherit',
-    detached: true,
-  });
-
-  // Save PID to file
-  fs.writeFileSync(path.join(process.cwd(), 'app.pid'), server.pid.toString());
-  
-  console.log(`Server started with PID: ${server.pid}`);
-  
-  // Handle process events
-  server.on('error', (err) => {
-    console.error('Failed to start server:', err);
-    process.exit(1);
+    detached: true
   });
   
+  // Save the PID to a file for future reference
+  fs.writeFileSync('./app.pid', server.pid.toString());
+  
+  console.log(`Server started with PID ${server.pid}`);
+  
+  // If the server exits unexpectedly, log it
   server.on('close', (code) => {
     console.log(`Server process exited with code ${code}`);
   });
   
-  // Don't wait for child process
-  server.unref();
+  // Keep the script running to maintain the child process
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down server...');
+    server.kill('SIGTERM');
+    process.exit(0);
+  });
 }
 
-// Run the start function
+// Start the server
 startServer().catch(err => {
-  console.error('Error starting server:', err);
+  console.error('Failed to start server:', err);
   process.exit(1);
 });

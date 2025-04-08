@@ -1,6 +1,5 @@
 // Simple test script to verify the updated Gemini client
-import { createGeminiClient } from './server/gemini_client.ts';
-import 'dotenv/config';
+import { createGeminiClient } from './server/gemini_client.js';
 
 // Function to test Gemini API
 async function testGeminiClient() {
