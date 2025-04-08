@@ -7,20 +7,60 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+interface ApiRequestOptions {
+  url: string;
+  method: string;
+  data?: unknown;
+  headers?: Record<string, string>;
+}
+
+export async function apiRequest<T = any>({
+  url,
+  method,
+  data,
+  headers = {},
+}: ApiRequestOptions): Promise<T> {
+  // Get auth token from localStorage if available
+  const userStr = localStorage.getItem('user');
+  let authHeaders = { ...headers };
+  
+  if (userStr) {
+    try {
+      const userData = JSON.parse(userStr);
+      if (userData.token) {
+        authHeaders = {
+          ...authHeaders,
+          'Authorization': `Bearer ${userData.token}`
+        };
+      }
+    } catch (e) {
+      console.error('Failed to parse user data from localStorage');
+    }
+  }
+  
+  // Set content type for JSON data
+  if (data) {
+    authHeaders = {
+      ...authHeaders,
+      'Content-Type': 'application/json'
+    };
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: authHeaders,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: 'include',
   });
 
   await throwIfResNotOk(res);
-  return res;
+  
+  // Return parsed JSON for all but 204 No Content responses
+  if (res.status === 204) {
+    return {} as T;
+  }
+  
+  return await res.json() as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

@@ -206,7 +206,7 @@ export default function Grocery() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Grocery List</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Grocery List</h1>
         <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
           <DialogTrigger asChild>
             <Button>
@@ -292,7 +292,7 @@ export default function Grocery() {
       {/* Search and Filters */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search items..."
             value={searchTerm}
@@ -337,15 +337,15 @@ export default function Grocery() {
             </div>
           ) : isError ? (
             <div className="py-8 text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">Error loading grocery items</h3>
-              <p className="text-sm text-muted-foreground">Please try again later</p>
+              <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">Error loading grocery items</h3>
+              <p className="text-sm text-gray-400">Please try again later</p>
             </div>
           ) : filteredItems?.length === 0 ? (
             <div className="py-8 text-center">
-              <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">Your grocery list is empty</h3>
-              <p className="text-sm text-muted-foreground">
+              <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">Your grocery list is empty</h3>
+              <p className="text-sm text-gray-400">
                 {searchTerm ? "Try adjusting your search" : "Add items to your grocery list"}
               </p>
             </div>
@@ -354,8 +354,8 @@ export default function Grocery() {
               {filteredItems?.map((item) => (
                 <div 
                   key={item.id} 
-                  className={`p-3 rounded-md flex items-center justify-between gap-4 ${
-                    item.purchased ? "bg-muted" : "bg-card"
+                  className={`p-3 rounded-md flex items-center justify-between gap-4 border border-[#2a2a35] ${
+                    item.purchased ? "bg-[#12121a] text-gray-500" : "bg-[#1a1a22]"
                   }`}
                 >
                   <div className="flex items-center gap-3 flex-1">
@@ -364,10 +364,10 @@ export default function Grocery() {
                       onCheckedChange={() => handleTogglePurchased(item)}
                     />
                     <div>
-                      <p className={`font-medium ${item.purchased ? "line-through text-muted-foreground" : ""}`}>
+                      <p className={`font-medium ${item.purchased ? "line-through text-gray-500" : "text-white"}`}>
                         {item.name}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-400">
                         {item.quantity} {item.unit}
                       </p>
                     </div>
@@ -413,7 +413,7 @@ export default function Grocery() {
               <CardTitle>Suggested from Recipes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-gray-400 mb-4">
                 Add ingredients from your favorite recipes to your grocery list.
               </p>
 
@@ -430,7 +430,7 @@ export default function Grocery() {
               <CardTitle>Low Inventory Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-gray-400 mb-4">
                 Items in your inventory that are running low.
               </p>
 

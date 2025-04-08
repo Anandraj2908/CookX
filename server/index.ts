@@ -1,10 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cookieParser from "cookie-parser";
+import connectToDatabase from "./db/mongoose";
+import authRoutes from "./auth/auth.routes";
+
+// Connect to MongoDB
+connectToDatabase();
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser()); // For parsing cookies with JWT tokens
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +44,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Register auth routes
+  app.use("/api/auth", authRoutes);
+  
+  // Register other API routes
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

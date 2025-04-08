@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,5 +11,79 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    background-color: #0f0f13;
+    color: #f5f5f7;
   }
+  
+  :root {
+    --card-shadow: 0 8px 32px rgba(124, 58, 237, 0.15);
+    --card-glow: 0 0 10px rgba(124, 58, 237, 0.2);
+  }
+}
+
+/* 3D Elements & Custom Styling */
+@layer components {
+  .card-3d {
+    @apply relative overflow-hidden rounded-xl;
+    background: linear-gradient(145deg, #1a1a22, #15151b);
+    box-shadow: var(--card-shadow);
+    transform-style: preserve-3d;
+    transition: all 0.3s ease;
+  }
+  
+  .card-3d:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-glow), var(--card-shadow);
+  }
+  
+  .card-highlight {
+    @apply relative overflow-hidden rounded-xl;
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.05));
+    border: 1px solid rgba(124, 58, 237, 0.1);
+    box-shadow: var(--card-shadow);
+  }
+  
+  .gradient-text {
+    @apply font-bold text-transparent bg-clip-text;
+    background-image: linear-gradient(135deg, #b884ff, #7c3aed);
+  }
+  
+  .floating-stats {
+    transform-style: preserve-3d;
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .glossy-button {
+    @apply bg-primary text-white rounded-full relative overflow-hidden;
+    background: linear-gradient(90deg, #7c3aed, #9d4edd);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .glossy-button:hover {
+    box-shadow: 0 15px 25px -5px rgba(124, 58, 237, 0.5);
+    transform: translateY(-2px);
+  }
+  
+  .sidebar-item {
+    @apply relative flex items-center py-2 px-3 rounded-lg my-1 transition-all;
+    background: linear-gradient(145deg, rgba(31, 31, 35, 0.6), rgba(18, 18, 20, 0.6));
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .sidebar-item.active {
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.05));
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    box-shadow: 0 5px 15px rgba(124, 58, 237, 0.15);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }

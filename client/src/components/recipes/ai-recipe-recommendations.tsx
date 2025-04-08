@@ -110,12 +110,12 @@ export default function AIRecipeRecommendations() {
       </div>
 
       {!userPreferences && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+        <div className="bg-[#2a2a35] border border-amber-800 rounded-md p-4">
           <div className="flex items-start space-x-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
             <div>
-              <h3 className="font-medium text-amber-800">Dietary preferences not set</h3>
-              <p className="text-sm text-amber-700 mt-1">
+              <h3 className="font-medium text-amber-400">Dietary preferences not set</h3>
+              <p className="text-sm text-amber-300 mt-1">
                 For better recipe recommendations, set your dietary preferences in Settings.
               </p>
             </div>
@@ -124,12 +124,12 @@ export default function AIRecipeRecommendations() {
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-[#2a2a35] border border-red-800 rounded-md p-4">
           <div className="flex items-start space-x-3">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
             <div>
-              <h3 className="font-medium text-red-800">Error</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <h3 className="font-medium text-red-400">Error</h3>
+              <p className="text-sm text-red-300 mt-1">{error}</p>
             </div>
           </div>
         </div>
@@ -137,42 +137,42 @@ export default function AIRecipeRecommendations() {
 
       {isLoadingInventory ? (
         <div className="space-y-4">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full bg-[#2a2a35]" />
+          <Skeleton className="h-48 w-full bg-[#2a2a35]" />
         </div>
       ) : isGenerating ? (
         <div className="space-y-4">
           <div className="animate-pulse space-y-4">
-            <div className="bg-gray-200 dark:bg-gray-700 h-48 rounded-md" />
-            <div className="bg-gray-200 dark:bg-gray-700 h-48 rounded-md" />
+            <div className="bg-[#2a2a35] h-48 rounded-md" />
+            <div className="bg-[#2a2a35] h-48 rounded-md" />
           </div>
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-gray-400">
             Generating recipe recommendations based on your inventory items...
           </p>
         </div>
       ) : recommendations.length > 0 ? (
         <div className="space-y-6">
           {recommendations.map((recipe, index) => (
-            <Card key={index}>
+            <Card key={index} className="border-[#2a2a35] bg-[#1a1a22]">
               <CardHeader>
-                <CardTitle>{recipe.name}</CardTitle>
+                <CardTitle className="text-white">{recipe.name}</CardTitle>
                 <CardDescription>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {recipe.cuisine && (
-                      <Badge variant="outline">{recipe.cuisine}</Badge>
+                      <Badge variant="outline" className="border-[#2a2a35] text-gray-300">{recipe.cuisine}</Badge>
                     )}
                     {recipe.dietaryInfo?.map((diet, i) => (
-                      <Badge key={i} className="bg-green-100 text-green-800 hover:bg-green-200">
+                      <Badge key={i} className="bg-green-800 text-green-200 hover:bg-green-700">
                         {diet}
                       </Badge>
                     ))}
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="border-[#2a2a35] text-gray-300">
                       Prep: {formatTime(recipe.prepTime)}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="border-[#2a2a35] text-gray-300">
                       Cook: {formatTime(recipe.cookTime)}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="border-[#2a2a35] text-gray-300">
                       Serves: {recipe.servings}
                     </Badge>
                   </div>
@@ -180,35 +180,39 @@ export default function AIRecipeRecommendations() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="ingredients">
-                  <TabsList>
-                    <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
-                    <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                  <TabsList className="border-[#2a2a35] bg-[#12121a]">
+                    <TabsTrigger value="ingredients" className="data-[state=active]:bg-[#2a2a35] data-[state=active]:text-white text-gray-400">
+                      Ingredients
+                    </TabsTrigger>
+                    <TabsTrigger value="instructions" className="data-[state=active]:bg-[#2a2a35] data-[state=active]:text-white text-gray-400">
+                      Instructions
+                    </TabsTrigger>
                   </TabsList>
-                  <TabsContent value="ingredients" className="space-y-4">
+                  <TabsContent value="ingredients" className="space-y-4 text-gray-200 mt-4">
                     <ul className="list-disc pl-5 space-y-1">
                       {recipe.ingredients.map((ingredient, i) => (
                         <li key={i} className="text-sm">{ingredient}</li>
                       ))}
                     </ul>
                   </TabsContent>
-                  <TabsContent value="instructions">
+                  <TabsContent value="instructions" className="text-gray-200 mt-4">
                     <div className="text-sm whitespace-pre-line">
                       {recipe.instructions}
                     </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
-              <CardFooter className="text-xs text-muted-foreground">
+              <CardFooter className="text-xs text-gray-400 border-t border-[#2a2a35] mt-2 pt-4">
                 Recipe generated based on available ingredients and preferences.
               </CardFooter>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 border rounded-md">
-          <UtensilsCrossed className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">No recipe recommendations yet</h3>
-          <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+        <div className="text-center py-12 border border-[#2a2a35] rounded-md bg-[#1a1a22]">
+          <UtensilsCrossed className="mx-auto h-12 w-12 text-gray-500" />
+          <h3 className="mt-4 text-lg font-medium text-white">No recipe recommendations yet</h3>
+          <p className="mt-2 text-sm text-gray-400 max-w-sm mx-auto">
             Click the "Get Recipe Ideas" button to generate personalized recipe recommendations based on 
             your inventory and preferences.
           </p>

@@ -101,13 +101,13 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="bg-blue-600 hover:bg-blue-700">
           <Plus className="mr-2 h-4 w-4" /> Add Item
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] border-[#2a2a35] bg-[#12121a] text-white">
         <DialogHeader>
-          <DialogTitle>Add New Inventory Item</DialogTitle>
+          <DialogTitle className="text-white">Add New Inventory Item</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
@@ -118,7 +118,7 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                 <FormItem>
                   <FormLabel>Item Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Tomatoes" {...field} />
+                    <Input placeholder="e.g., Tomatoes" className="border-[#2a2a35] bg-[#1a1a22] text-white" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,13 +137,13 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="border-[#2a2a35] bg-[#1a1a22] text-white">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="border-[#2a2a35] bg-[#12121a]">
                         {CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
+                          <SelectItem key={category} value={category} className="text-gray-200 hover:bg-[#2a2a35]">
                             {category}
                           </SelectItem>
                         ))}
@@ -165,13 +165,13 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="border-[#2a2a35] bg-[#1a1a22] text-white">
                           <SelectValue placeholder="Select location" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="border-[#2a2a35] bg-[#12121a]">
                         {LOCATIONS.map((location) => (
-                          <SelectItem key={location} value={location}>
+                          <SelectItem key={location} value={location} className="text-gray-200 hover:bg-[#2a2a35]">
                             {location}
                           </SelectItem>
                         ))}
@@ -191,7 +191,7 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                   <FormItem>
                     <FormLabel>Quantity</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" className="border-[#2a2a35] bg-[#1a1a22] text-white" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -209,13 +209,13 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="border-[#2a2a35] bg-[#1a1a22] text-white">
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="border-[#2a2a35] bg-[#12121a]">
                         {UNITS.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
+                          <SelectItem key={unit} value={unit} className="text-gray-200 hover:bg-[#2a2a35]">
                             {unit}
                           </SelectItem>
                         ))}
@@ -238,8 +238,8 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                       <FormControl>
                         <Button
                           variant={"outline"}
-                          className={`w-full pl-3 text-left font-normal ${
-                            !field.value ? "text-muted-foreground" : ""
+                          className={`w-full pl-3 text-left font-normal border-[#2a2a35] bg-[#1a1a22] ${
+                            !field.value ? "text-gray-500" : "text-white"
                           }`}
                         >
                           {field.value ? (
@@ -251,13 +251,14 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 border-[#2a2a35] bg-[#12121a]" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
                         disabled={(date) => date < new Date("1900-01-01")}
                         initialFocus
+                        className="bg-[#12121a] text-white"
                       />
                     </PopoverContent>
                   </Popover>
@@ -275,6 +276,7 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                   <FormControl>
                     <Textarea
                       placeholder="Optional notes about the item"
+                      className="border-[#2a2a35] bg-[#1a1a22] text-white"
                       {...field}
                     />
                   </FormControl>
@@ -288,10 +290,11 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                className="border-[#2a2a35] bg-[#1a1a22] text-white hover:bg-[#2a2a35]"
               >
                 Cancel
               </Button>
-              <Button type="submit">Add Item</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Add Item</Button>
             </div>
           </form>
         </Form>

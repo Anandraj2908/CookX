@@ -23,22 +23,22 @@ const ItemExpiryAlert = ({ daysThreshold = 7 }: ItemExpiryAlertProps) => {
   }
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-md p-4 relative">
+    <div className="bg-[#2a1a12] border border-[#b45309] rounded-md p-4 relative">
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-6 w-6 text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+        className="absolute top-2 right-2 h-6 w-6 text-amber-500 hover:text-amber-400 hover:bg-[#3a2a22]"
         onClick={() => setDismissed(true)}
       >
         <X className="h-4 w-4" />
       </Button>
       <div className="flex items-start space-x-3">
-        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+        <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
         <div>
-          <h3 className="font-medium text-amber-800">
+          <h3 className="font-medium text-amber-400">
             {expiringItems.length} {expiringItems.length === 1 ? "item" : "items"} expiring soon
           </h3>
-          <p className="text-sm text-amber-700 mt-1">
+          <p className="text-sm text-amber-300 mt-1">
             {expiringItems.length > 3 
               ? `${expiringItems.slice(0, 3).map(item => item.name).join(", ")} and ${expiringItems.length - 3} more ${expiringItems.length - 3 === 1 ? "item" : "items"} will expire within ${daysThreshold} days.`
               : `${expiringItems.map(item => item.name).join(", ")} will expire within ${daysThreshold} days.`
@@ -48,7 +48,7 @@ const ItemExpiryAlert = ({ daysThreshold = 7 }: ItemExpiryAlertProps) => {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-amber-200 text-amber-700 hover:bg-amber-100 hover:text-amber-900"
+              className="border-amber-700 bg-[#3a2a22] text-amber-400 hover:bg-amber-900 hover:text-amber-300"
               asChild
             >
               <Link href="/recipes">Find recipes to use them</Link>

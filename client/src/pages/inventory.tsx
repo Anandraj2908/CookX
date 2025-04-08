@@ -150,7 +150,7 @@ export default function Inventory() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Inventory</h1>
         <AddItemForm onSuccess={() => {
           toast({
             title: "Success", 
@@ -166,18 +166,18 @@ export default function Inventory() {
       <div className="flex flex-col space-y-4">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search inventory items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
+              className="pl-8 border-[#2a2a35] bg-[#1a1a22] text-white"
             />
           </div>
           <Button 
             variant="outline" 
             onClick={() => setShowFilters(!showFilters)}
-            className="gap-2"
+            className="gap-2 border-[#2a2a35]"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
@@ -197,7 +197,7 @@ export default function Inventory() {
         {showFilters && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="border-[#2a2a35] bg-[#1a1a22]">
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
@@ -211,7 +211,7 @@ export default function Inventory() {
             </Select>
             
             <Select value={locationFilter} onValueChange={setLocationFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="border-[#2a2a35] bg-[#1a1a22]">
                 <SelectValue placeholder="Filter by location" />
               </SelectTrigger>
               <SelectContent>
@@ -229,7 +229,7 @@ export default function Inventory() {
 
       {/* Inventory Display */}
       <Tabs defaultValue="table" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-md grid-cols-3 bg-[#1a1a22] border border-[#2a2a35]">
           <TabsTrigger value="table">Table View</TabsTrigger>
           <TabsTrigger value="location">By Location</TabsTrigger>
           <TabsTrigger value="category">By Category</TabsTrigger>
@@ -245,58 +245,59 @@ export default function Inventory() {
             </div>
           ) : isError ? (
             <div className="py-8 text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">Error loading inventory</h3>
-              <p className="text-sm text-muted-foreground">Please try again later</p>
+              <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">Error loading inventory</h3>
+              <p className="text-sm text-gray-400">Please try again later</p>
             </div>
           ) : filteredItems?.length === 0 ? (
             <div className="py-8 text-center">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">No items found</h3>
-              <p className="text-sm text-muted-foreground">
+              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">No items found</h3>
+              <p className="text-sm text-gray-400">
                 {searchTerm || categoryFilter || locationFilter
                   ? "Try adjusting your filters"
                   : "Add your first item to get started"}
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-[#2a2a35] bg-[#12121a]">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Expiry Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                <TableHeader className="bg-[#1a1a22]">
+                  <TableRow className="hover:bg-[#2a2a35]">
+                    <TableHead className="text-gray-400">Name</TableHead>
+                    <TableHead className="text-gray-400">Category</TableHead>
+                    <TableHead className="text-gray-400">Quantity</TableHead>
+                    <TableHead className="text-gray-400">Location</TableHead>
+                    <TableHead className="text-gray-400">Expiry Date</TableHead>
+                    <TableHead className="text-right text-gray-400">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredItems?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.category}</TableCell>
-                      <TableCell>
+                    <TableRow key={item.id} className="hover:bg-[#1a1a22]">
+                      <TableCell className="font-medium text-white">{item.name}</TableCell>
+                      <TableCell className="text-gray-300">{item.category}</TableCell>
+                      <TableCell className="text-gray-300">
                         {item.quantity} {item.unit}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{item.location}</Badge>
+                        <Badge variant="outline" className="border-[#3a3a45] text-white">{item.location}</Badge>
                       </TableCell>
                       <TableCell className={getExpiryStatusColor(item.expiryDate)}>
                         {item.expiryDate ? formatExpiryDate(item.expiryDate) : "No expiry date"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" className="hover:bg-[#2a2a35]">
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
                             onClick={() => handleDeleteItem(item.id)}
+                            className="hover:bg-[#2a2a35]"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 text-red-400" />
                           </Button>
                         </div>
                       </TableCell>
@@ -318,15 +319,15 @@ export default function Inventory() {
             </div>
           ) : isError ? (
             <div className="py-8 text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">Error loading inventory</h3>
-              <p className="text-sm text-muted-foreground">Please try again later</p>
+              <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">Error loading inventory</h3>
+              <p className="text-sm text-gray-400">Please try again later</p>
             </div>
           ) : filteredItems?.length === 0 ? (
             <div className="py-8 text-center">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">No items found</h3>
-              <p className="text-sm text-muted-foreground">
+              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">No items found</h3>
+              <p className="text-sm text-gray-400">
                 {searchTerm || categoryFilter || locationFilter
                   ? "Try adjusting your filters"
                   : "Add your first item to get started"}
@@ -335,13 +336,13 @@ export default function Inventory() {
           ) : (
             <div className="grid gap-6 grid-cols-1">
               {itemsByLocation && Object.keys(itemsByLocation).map((location) => (
-                <Card key={location}>
+                <Card key={location} className="border border-[#2a2a35] bg-[#12121a]">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-4 w-4" />
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Package className="h-4 w-4 text-blue-400" />
                       {location}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-400">
                       {itemsByLocation[location].length} items
                     </CardDescription>
                   </CardHeader>
@@ -350,28 +351,29 @@ export default function Inventory() {
                       {itemsByLocation[location].map((item) => (
                         <div 
                           key={item.id} 
-                          className="p-3 border rounded-md flex flex-col"
+                          className="p-3 border border-[#2a2a35] bg-[#1a1a22] rounded-md flex flex-col"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium">{item.name}</h4>
-                              <p className="text-sm text-muted-foreground">{item.category}</p>
+                              <h4 className="font-medium text-white">{item.name}</h4>
+                              <p className="text-sm text-gray-400">{item.category}</p>
                             </div>
                             <div className="flex">
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" className="hover:bg-[#2a2a35]">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon"
                                 onClick={() => handleDeleteItem(item.id)}
+                                className="hover:bg-[#2a2a35]"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 text-red-400" />
                               </Button>
                             </div>
                           </div>
                           <div className="mt-2">
-                            <p className="text-sm">
+                            <p className="text-sm text-gray-300">
                               {item.quantity} {item.unit}
                             </p>
                             {item.expiryDate && (
@@ -381,7 +383,7 @@ export default function Inventory() {
                             )}
                           </div>
                           {item.notes && (
-                            <p className="mt-2 text-xs text-muted-foreground">{item.notes}</p>
+                            <p className="mt-2 text-xs text-gray-400">{item.notes}</p>
                           )}
                         </div>
                       ))}
@@ -403,15 +405,15 @@ export default function Inventory() {
             </div>
           ) : isError ? (
             <div className="py-8 text-center">
-              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">Error loading inventory</h3>
-              <p className="text-sm text-muted-foreground">Please try again later</p>
+              <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">Error loading inventory</h3>
+              <p className="text-sm text-gray-400">Please try again later</p>
             </div>
           ) : filteredItems?.length === 0 ? (
             <div className="py-8 text-center">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-semibold">No items found</h3>
-              <p className="text-sm text-muted-foreground">
+              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-semibold text-white">No items found</h3>
+              <p className="text-sm text-gray-400">
                 {searchTerm || categoryFilter || locationFilter
                   ? "Try adjusting your filters"
                   : "Add your first item to get started"}
@@ -420,13 +422,13 @@ export default function Inventory() {
           ) : (
             <div className="grid gap-6 grid-cols-1">
               {itemsByCategory && Object.keys(itemsByCategory).map((category) => (
-                <Card key={category}>
+                <Card key={category} className="border border-[#2a2a35] bg-[#12121a]">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2">
-                      {React.createElement(getCategoryIcon(category), { className: "h-4 w-4" })}
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      {React.createElement(getCategoryIcon(category), { className: "h-4 w-4 text-green-400" })}
                       {category}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-400">
                       {itemsByCategory[category].length} items
                     </CardDescription>
                   </CardHeader>
@@ -435,28 +437,29 @@ export default function Inventory() {
                       {itemsByCategory[category].map((item) => (
                         <div 
                           key={item.id} 
-                          className="p-3 border rounded-md flex flex-col"
+                          className="p-3 border border-[#2a2a35] bg-[#1a1a22] rounded-md flex flex-col"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium">{item.name}</h4>
-                              <p className="text-sm text-muted-foreground">{item.location}</p>
+                              <h4 className="font-medium text-white">{item.name}</h4>
+                              <p className="text-sm text-gray-400">{item.location}</p>
                             </div>
                             <div className="flex">
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" className="hover:bg-[#2a2a35]">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon"
                                 onClick={() => handleDeleteItem(item.id)}
+                                className="hover:bg-[#2a2a35]"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 text-red-400" />
                               </Button>
                             </div>
                           </div>
                           <div className="mt-2">
-                            <p className="text-sm">
+                            <p className="text-sm text-gray-300">
                               {item.quantity} {item.unit}
                             </p>
                             {item.expiryDate && (
@@ -466,7 +469,7 @@ export default function Inventory() {
                             )}
                           </div>
                           {item.notes && (
-                            <p className="mt-2 text-xs text-muted-foreground">{item.notes}</p>
+                            <p className="mt-2 text-xs text-gray-400">{item.notes}</p>
                           )}
                         </div>
                       ))}

@@ -220,7 +220,7 @@ export default function MealPlanner() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Meal Planner</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Meal Planner</h1>
         <Dialog open={isAddingMeal} onOpenChange={setIsAddingMeal}>
           <DialogTrigger asChild>
             <Button onClick={() => {
@@ -405,7 +405,7 @@ export default function MealPlanner() {
                 <>
                   {getMealPlansForDate(day).length === 0 ? (
                     <div 
-                      className="py-3 text-center text-xs text-muted-foreground border border-dashed rounded-md cursor-pointer hover:bg-accent"
+                      className="py-3 text-center text-xs text-gray-400 border border-dashed border-[#2a2a35] rounded-md cursor-pointer hover:bg-[#1a1a22]"
                       onClick={() => {
                         setSelectedDate(day);
                         setEditingMealPlan(null);
@@ -420,7 +420,7 @@ export default function MealPlanner() {
                       {getMealPlansForDate(day).map((mealPlan) => (
                         <div 
                           key={mealPlan.id} 
-                          className="p-2 border rounded-md text-xs hover:bg-accent cursor-pointer"
+                          className="p-2 border border-[#2a2a35] bg-[#1a1a22] rounded-md text-xs hover:bg-[#12121a] cursor-pointer"
                           onClick={() => {
                             setSelectedDate(new Date(mealPlan.date));
                             setEditingMealPlan(mealPlan);
@@ -428,7 +428,7 @@ export default function MealPlanner() {
                           }}
                         >
                           <div className="flex justify-between items-start">
-                            <p className="font-medium">{mealPlan.mealType}</p>
+                            <p className="font-medium text-white">{mealPlan.mealType}</p>
                             <Button 
                               variant="ghost" 
                               size="icon"
@@ -442,19 +442,19 @@ export default function MealPlanner() {
                             </Button>
                           </div>
                           {mealPlan.recipeId && (
-                            <p className="text-muted-foreground line-clamp-1">
+                            <p className="text-gray-400 line-clamp-1">
                               {getRecipeName(mealPlan.recipeId)}
                             </p>
                           )}
                           {mealPlan.notes && (
-                            <p className="text-muted-foreground mt-1 line-clamp-1">
+                            <p className="text-gray-400 mt-1 line-clamp-1">
                               {mealPlan.notes}
                             </p>
                           )}
                         </div>
                       ))}
                       <div 
-                        className="py-2 text-center text-xs text-muted-foreground border border-dashed rounded-md cursor-pointer hover:bg-accent"
+                        className="py-2 text-center text-xs text-gray-400 border border-dashed border-[#2a2a35] rounded-md cursor-pointer hover:bg-[#1a1a22]"
                         onClick={() => {
                           setSelectedDate(day);
                           setEditingMealPlan(null);

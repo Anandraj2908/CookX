@@ -7,11 +7,17 @@ import {
   Calendar,
   ShoppingCart,
   Settings,
-  Menu
+  ChefHat,
+  Sparkles,
+  BellRing,
+  Flame
 } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { UserProfile } from "./user-profile";
 
 const Sidebar = () => {
   const [location] = useLocation();
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { name: "Dashboard", href: "/", icon: Home },
@@ -24,22 +30,50 @@ const Sidebar = () => {
 
   return (
     <aside className="hidden md:flex md:flex-shrink-0">
-      <div className="flex flex-col w-64 bg-gray-900 border-r border-gray-200">
-        <div className="flex items-center justify-center h-16 bg-primary">
-          <span className="text-xl font-semibold text-white">KitchenSmart</span>
+      <div className="flex flex-col w-64 bg-[#0f0f13] border-r border-[#1f1f23]">
+        {/* Logo Section */}
+        <div className="flex items-center justify-center h-20 relative overflow-hidden">
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-purple-600 rounded-full opacity-10 blur-3xl"></div>
+          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-400 rounded-full opacity-10 blur-3xl"></div>
+          <span className="gradient-text text-2xl font-semibold tracking-tight flex items-center">
+            <Flame className="mr-2 h-6 w-6 text-purple-400" /> 
+            FoodX
+          </span>
         </div>
         
         {/* Profile Section */}
-        <div className="flex flex-col items-center pt-5 pb-5 border-b border-gray-700">
-          <div className="relative w-20 h-20 overflow-hidden bg-gray-700 rounded-full">
-            <div className="absolute inset-0 flex items-center justify-center text-white text-3xl font-semibold">U</div>
+        {isAuthenticated ? (
+          <div className="px-4 py-6 border-b border-[#1f1f23]">
+            <UserProfile />
           </div>
-          <h4 className="mt-2 text-sm font-medium text-white">User</h4>
-          <p className="text-xs text-gray-400">Home Chef</p>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center pt-5 pb-6 mb-4 relative border-b border-[#1f1f23]">
+            <div className="relative w-20 h-20 overflow-hidden rounded-xl bg-gradient-to-br from-[#1f1f23] to-[#141418] p-[1px]">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-700/20 rounded-xl">
+                <div className="absolute inset-[1px] bg-[#141418] rounded-xl flex items-center justify-center">
+                  <ChefHat className="h-10 w-10 text-purple-400" />
+                </div>
+              </div>
+            </div>
+            <h4 className="mt-3 text-sm font-medium text-white">Culinary Expert</h4>
+            <div className="flex items-center mt-1">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                <Sparkles className="mr-1 h-3 w-3" />
+                Master Chef
+              </span>
+            </div>
+            <div className="mt-3">
+              <Link href="/login">
+                <button className="text-xs py-1.5 px-4 rounded-full bg-purple-600/20 text-purple-300 border border-purple-600/30 hover:bg-purple-600/30 transition-colors">
+                  Login
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
         
         {/* Navigation */}
-        <nav className="flex-1 px-2 pt-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
@@ -47,40 +81,43 @@ const Sidebar = () => {
                 key={item.name} 
                 href={item.href}
                 className={cn(
-                  "flex items-center px-3 py-2 text-sm font-medium rounded-md",
-                  isActive 
-                    ? "bg-primary text-white" 
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                  "sidebar-item",
+                  isActive ? "active" : "hover:bg-[#1a1a20] hover:border-purple-500/10"
                 )}
               >
-                <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                {isActive && (
+                  <div className="absolute inset-0 opacity-20 bg-gradient-to-r from-purple-500/20 to-purple-700/10 rounded-lg" />
+                )}
+                <item.icon className={cn(
+                  "mr-3 h-5 w-5",
+                  isActive ? "text-purple-400" : "text-gray-400"
+                )} />
+                <span className={cn(
+                  "font-medium",
+                  isActive ? "text-white" : "text-gray-300"
+                )}>
+                  {item.name}
+                </span>
               </Link>
             );
           })}
         </nav>
         
         {/* App Info */}
-        <div className="p-4 mt-6 bg-gray-800">
-          <div className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5 mr-2 text-primary-light"
-            >
-              <path d="M19.3 14a1.83 1.83 0 0 0 .7-2.25A1.83 1.83 0 0 0 17.7 11h-2.9a4.25 4.25 0 0 1-3.6-2.05 1.83 1.83 0 0 0-2.3-.75 1.83 1.83 0 0 0-1.2 2.25L9.1 14" />
-              <path d="M10.9 2a4.1 4.1 0 0 1 2.5.84l.17.15a4.25 4.25 0 0 0 5.56 0l.17-.15A4.1 4.1 0 0 1 21.8 2H22a4 4 0 0 1 4 4v.36a4.14 4.14 0 0 1-1.34 3l-.14.14a4.25 4.25 0 0 0 0 5.59l.14.14a4.14 4.14 0 0 1 1.34 3V22a4 4 0 0 1-4 4h-.36a4.1 4.1 0 0 1-2.5-.84l-.17-.15a4.25 4.25 0 0 0-5.56 0l-.17.15a4.1 4.1 0 0 1-2.5.84H10a4 4 0 0 1-4-4v-.36a4.14 4.14 0 0 1 1.34-3l.14-.14a4.25 4.25 0 0 0 0-5.59l-.14-.14a4.14 4.14 0 0 1-1.34-3V6a4 4 0 0 1 4-4h.36a4.1 4.1 0 0 1 2.5.84l.17.15a4.25 4.25 0 0 0 5.56 0l.17-.15a4.1 4.1 0 0 1 2.5-.84H16" />
-              <path d="M12 8v3" />
-              <path d="M12 16h.01" />
-            </svg>
-            <span className="text-xs font-medium text-gray-200">Reduce Food Waste</span>
+        <div className="p-4 mx-3 mb-4 rounded-xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-purple-800/5 rounded-xl opacity-30" />
+          <div className="relative z-10">
+            <div className="flex items-center">
+              <BellRing className="h-5 w-5 mr-2 text-purple-400" />
+              <span className="text-xs font-medium text-white">Reduce Food Waste</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-400">Smart kitchen companion powered by AI</p>
+            <div className="mt-3 flex">
+              <button className="text-xs py-1.5 px-3 rounded-full bg-purple-600/20 text-purple-300 border border-purple-600/30 hover:bg-purple-600/30 transition-colors">
+                Explore Features
+              </button>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-gray-400">Track, Plan & Save</p>
         </div>
       </div>
     </aside>
