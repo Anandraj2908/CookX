@@ -522,6 +522,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gemini AI Recipe Generation endpoint
+  // Test endpoint for Gemini API
+  app.get("/api/test-gemini", async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Gemini API key not found" });
+      }
+      
+      try {
+        // Call Gemini API directly with fetch
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: "Hello! Please respond with a simple test recipe for cookies."
+                    }
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 500,
+              },
+            })
+          }
+        );
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gemini API error: ${errorText}`);
+        }
+        
+        const data = await response.json() as GeminiResponse;
+        
+        // Extract and return the response
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No content received";
+        
+        // Return the response to check if the API call works
+        return res.json({
+          message: "Gemini API test successful",
+          response: responseText
+        });
+      } catch (apiError) {
+        console.error("Gemini API test error:", apiError);
+        return res.status(500).json({ 
+          error: apiError instanceof Error ? apiError.message : "Error in Gemini test API call" 
+        });
+      }
+    } catch (error) {
+      console.error("Test endpoint error:", error);
+      return res.status(500).json({ error: "Test endpoint error" });
+    }
+  });
+
   app.post("/api/ai-recipes", async (req, res) => {
     try {
       const { ingredients, preferences } = req.body;
@@ -530,12 +593,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Ingredients must be an array" });
       }
 
-      // Get the API key from environment
-      const apiKey = process.env.OPENROUTER_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error("OpenRouter API key not found in server environment");
-      }
+      // Dummy apiKey declaration for compatibility with existing code
+      // The actual API key will be fetched in the try block
+      const apiKey = "placeholder";
 
       // Format ingredients into a list for the prompt
       const ingredientList = ingredients.map(ing => 
@@ -570,42 +630,55 @@ INSTRUCTIONS:
 Only include recipes that I can make with the provided ingredients, with minimal additional ingredients. Follow the user preferences strictly.
 `;
 
-      // Call the OpenRouter API to access Gemini via OpenAI-compatible interface
+      // Call the Gemini API directly
       let responseText: string;
       
       try {
-        // Import OpenAI library
-        const { OpenAI } = await import("openai");
+        // Use Node fetch to call Gemini API directly
+        const apiKey = process.env.GEMINI_API_KEY;
         
-        // Initialize OpenAI client with OpenRouter base URL
-        const client = new OpenAI({
-          baseURL: "https://openrouter.ai/api/v1",
-          apiKey: apiKey,
-        });
-
-        // Make the API call using OpenAI-compatible interface
-        const completion = await client.chat.completions.create({
-          model: "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini 2.5 Pro model via OpenRouter
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2048,
-          extra_headers: {
-            "HTTP-Referer": "https://kitchen-buddy.replit.app", // Optional site URL
-            "X-Title": "Kitchen Buddy App" // Optional site title
+        if (!apiKey) {
+          throw new Error("GEMINI_API_KEY not found in environment");
+        }
+        
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: prompt
+                    }
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 2048,
+              },
+            })
           }
-        });
-
-        // Extract the response text
-        responseText = completion.choices[0]?.message?.content || "";
-        console.log("OpenRouter API response:", JSON.stringify(completion));
+        );
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gemini API error: ${errorText}`);
+        }
+        
+        const data = await response.json() as GeminiResponse;
+        
+        // Extract the text from Gemini response
+        responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        console.log("Gemini API response:", JSON.stringify(data));
         
         if (!responseText) {
-          throw new Error("No response received from Gemini via OpenRouter");
+          throw new Error("No response received from Gemini API");
         }
       } catch (apiError) {
         console.error("API call error:", apiError);
