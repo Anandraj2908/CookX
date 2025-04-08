@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { InventoryItem } from "@shared/schema";
 import { formatExpiryDate, getExpiryStatusColor, CATEGORIES, LOCATIONS } from "@/lib/utils";
@@ -36,7 +36,16 @@ import {
   AlertCircle,
   Search,
   SlidersHorizontal,
-  RefreshCw
+  RefreshCw,
+  Apple,
+  Beef,
+  Fish,
+  Milk,
+  Cookie,
+  Coffee,
+  Snowflake,
+  Wheat,
+  LucideIcon
 } from "lucide-react";
 
 export default function Inventory() {
@@ -95,12 +104,47 @@ export default function Inventory() {
     acc[item.location].push(item);
     return acc;
   }, {} as Record<string, InventoryItem[]>);
+  
+  // Group items by category for category view
+  const itemsByCategory = filteredItems?.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, InventoryItem[]>);
 
   // Reset all filters
   const resetFilters = () => {
     setSearchTerm("");
     setCategoryFilter("");
     setLocationFilter("");
+  };
+  
+  // Get appropriate icon for category
+  const getCategoryIcon = (category: string): LucideIcon => {
+    switch(category) {
+      case 'Fruits':
+        return Apple;
+      case 'Vegetables':
+        return Wheat;
+      case 'Spices/Masala':
+        return Coffee; // Using Coffee as a placeholder for spices
+      case 'Staples':
+        return Wheat;
+      case 'Meat':
+        return Beef;
+      case 'Seafood':
+        return Fish;
+      case 'Dairy':
+        return Milk;
+      case 'Snacks':
+        return Cookie;
+      case 'Frozen':
+        return Snowflake;
+      default:
+        return Package;
+    }
   };
 
   return (
@@ -185,9 +229,10 @@ export default function Inventory() {
 
       {/* Inventory Display */}
       <Tabs defaultValue="table" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="table">Table View</TabsTrigger>
-          <TabsTrigger value="cards">Cards View</TabsTrigger>
+          <TabsTrigger value="location">By Location</TabsTrigger>
+          <TabsTrigger value="category">By Category</TabsTrigger>
         </TabsList>
         
         {/* Table View */}
@@ -263,8 +308,8 @@ export default function Inventory() {
           )}
         </TabsContent>
         
-        {/* Cards View */}
-        <TabsContent value="cards">
+        {/* By Location View */}
+        <TabsContent value="location">
           {isLoading ? (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               <Skeleton className="h-48 w-full" />
@@ -311,6 +356,91 @@ export default function Inventory() {
                             <div>
                               <h4 className="font-medium">{item.name}</h4>
                               <p className="text-sm text-muted-foreground">{item.category}</p>
+                            </div>
+                            <div className="flex">
+                              <Button variant="ghost" size="icon">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDeleteItem(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <p className="text-sm">
+                              {item.quantity} {item.unit}
+                            </p>
+                            {item.expiryDate && (
+                              <p className={`text-sm ${getExpiryStatusColor(item.expiryDate)}`}>
+                                Expires: {formatExpiryDate(item.expiryDate)}
+                              </p>
+                            )}
+                          </div>
+                          {item.notes && (
+                            <p className="mt-2 text-xs text-muted-foreground">{item.notes}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* By Category View */}
+        <TabsContent value="category">
+          {isLoading ? (
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          ) : isError ? (
+            <div className="py-8 text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-lg font-semibold">Error loading inventory</h3>
+              <p className="text-sm text-muted-foreground">Please try again later</p>
+            </div>
+          ) : filteredItems?.length === 0 ? (
+            <div className="py-8 text-center">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-2 text-lg font-semibold">No items found</h3>
+              <p className="text-sm text-muted-foreground">
+                {searchTerm || categoryFilter || locationFilter
+                  ? "Try adjusting your filters"
+                  : "Add your first item to get started"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-6 grid-cols-1">
+              {itemsByCategory && Object.keys(itemsByCategory).map((category) => (
+                <Card key={category}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      {React.createElement(getCategoryIcon(category), { className: "h-4 w-4" })}
+                      {category}
+                    </CardTitle>
+                    <CardDescription>
+                      {itemsByCategory[category].length} items
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {itemsByCategory[category].map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="p-3 border rounded-md flex flex-col"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{item.name}</h4>
+                              <p className="text-sm text-muted-foreground">{item.location}</p>
                             </div>
                             <div className="flex">
                               <Button variant="ghost" size="icon">

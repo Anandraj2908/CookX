@@ -64,12 +64,12 @@ export function getExpiryStatusColor(date: Date | string | number | null | undef
 export const CATEGORIES = [
   'Fruits', 
   'Vegetables',
+  'Spices/Masala',
+  'Staples', // Dal, Rice, Semolina, etc.
   'Meat',
   'Seafood',
   'Dairy',
-  'Grains',
   'Baking',
-  'Spices',
   'Condiments',
   'Beverages',
   'Snacks',
