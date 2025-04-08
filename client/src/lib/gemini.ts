@@ -1,4 +1,5 @@
 import { InventoryItem } from "@shared/schema";
+import { apiRequest } from "./queryClient";
 
 interface RecipeRecommendation {
   name: string;
@@ -19,27 +20,17 @@ export async function getRecipeRecommendations(
   try {
     console.log("Calling server AI recipe endpoint with", ingredients.length, "ingredients");
     
-    // Call the server-side endpoint instead of calling Gemini directly
-    const response = await fetch(`/api/ai-recipes`, {
+    // Use the apiRequest helper to properly handle tokens and errors
+    const recipes = await apiRequest<RecipeRecommendation[]>({
+      url: "/api/generate-recipes",
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      data: {
         ingredients,
         preferences
-      })
+      }
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("AI recipe generation error:", errorData);
-      throw new Error(errorData.error || "Failed to generate recipes");
-    }
-
-    const recipes = await response.json();
-    console.log("Server returned", recipes.length, "recipes");
     
+    console.log("Server returned", recipes.length, "recipes");
     return recipes;
     
   } catch (error) {
@@ -47,5 +38,3 @@ export async function getRecipeRecommendations(
     throw error;
   }
 }
-
-// The response parsing is now handled on the server side

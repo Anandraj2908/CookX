@@ -1,9 +1,14 @@
 // Simple script to start the kitchen application
-// Run with: node start-kitchen-app.js
+// Run with: node start-kitchen-app.mjs
 
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startServer() {
   console.log('Starting kitchen application server...');

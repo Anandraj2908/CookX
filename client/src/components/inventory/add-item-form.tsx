@@ -72,7 +72,11 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      await apiRequest("POST", "/api/inventory", data);
+      await apiRequest({
+        url: "/api/inventory",
+        method: "POST",
+        data: data
+      });
       
       toast({
         title: "Success",
@@ -90,6 +94,7 @@ const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
       // Call success callback if provided
       if (onSuccess) onSuccess();
     } catch (error) {
+      console.error("Error adding item:", error);
       toast({
         title: "Error",
         description: "Failed to add item to inventory",
