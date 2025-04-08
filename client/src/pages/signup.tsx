@@ -49,16 +49,25 @@ export default function Signup() {
       // Remove confirmPassword as it's not needed for the API request
       const { confirmPassword, ...signupData } = data;
       
-      const response = await apiRequest<{ token: string; username: string; id: string }>({
+      console.log("Signing up with data:", signupData);
+      
+      const response = await apiRequest<{ token: string; username: string; id: string; email?: string }>({
         url: "/api/auth/signup",
         method: "POST",
         data: signupData,
       });
       
+      console.log("Signup response:", response);
+      
+      if (!response || !response.token) {
+        throw new Error("Invalid server response. Token not received.");
+      }
+      
       // Store user authentication data in localStorage
       localStorage.setItem("user", JSON.stringify({
         id: response.id,
         username: response.username,
+        email: response.email,
         token: response.token
       }));
       
@@ -70,10 +79,22 @@ export default function Signup() {
       // Redirect to dashboard after successful signup
       setLocation("/dashboard");
     } catch (error: any) {
+      console.error("Signup error:", error);
+      
+      // Extract error message from response if available
+      let errorMessage = "An error occurred during signup. Please try again.";
+      
+      if (error.message) {
+        // Clean up error message for display
+        errorMessage = error.message
+          .replace(/^\d+:\s*/, '') // Remove status code prefix if present
+          .replace(/{.*}/, "Server error"); // Replace JSON objects with simple message
+      }
+      
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error?.message || "An error occurred during signup. Please try again.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
