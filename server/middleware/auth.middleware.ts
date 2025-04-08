@@ -1,56 +1,85 @@
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import User, { IUser } from "../models/user.model";
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.model';
+import mongoose from 'mongoose';
 
-// Define the secret key for JWT verification (same as in user model)
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-123456789";
-
-// Extend Express Request to include user property
+// Extend the Request interface to include a user property
 declare global {
   namespace Express {
     interface Request {
-      user?: IUser;
+      user?: {
+        id: string | mongoose.Types.ObjectId;
+      };
       token?: string;
     }
   }
 }
 
-/**
- * Authentication middleware for Express
- * Verifies the JWT token from cookies or Authorization header
- */
-export const auth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get token from cookie or Authorization header
-    const token = 
-      req.cookies?.token || 
-      req.header("Authorization")?.replace("Bearer ", "");
-
-    // If no token found, return unauthorized error
+    // Get token from header, cookies, or query parameter
+    let token;
+    
+    // Check header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+    
+    // Check cookies
+    if (!token && req.cookies) {
+      token = req.cookies.token;
+    }
+    
+    // Check query params (less secure, use only for testing)
+    if (!token && req.query && req.query.token) {
+      token = req.query.token as string;
+    }
+    
+    // If no token found, return unauthorized
     if (!token) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
+      return res.status(401).json({
+        message: 'Authentication required, no token provided'
+      });
     }
-
+    
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    const decoded = jwt.verify(
+      token, 
+      process.env.JWT_SECRET || 'fallback_secret_for_dev'
+    ) as { id: string };
     
-    // Find the user by id
+    // Check if user exists
     const user = await User.findById(decoded.id);
-    
-    // If user not found, return unauthorized error
     if (!user) {
-      res.status(401).json({ error: "User not found" });
-      return;
+      return res.status(401).json({
+        message: 'User not found or token is invalid'
+      });
     }
-
-    // Attach user and token to request object
-    req.user = user;
+    
+    // Set user and token on request object
+    req.user = { id: user._id as mongoose.Types.ObjectId };
     req.token = token;
     
     next();
   } catch (error) {
-    res.status(401).json({ error: "Authentication failed" });
+    console.error('Authentication error:', error);
+    
+    if ((error as any).name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        message: 'Invalid token'
+      });
+    }
+    
+    if ((error as any).name === 'TokenExpiredError') {
+      return res.status(401).json({
+        message: 'Token expired'
+      });
+    }
+    
+    res.status(500).json({
+      message: 'Server error during authentication'
+    });
   }
 };
 

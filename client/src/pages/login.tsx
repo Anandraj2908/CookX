@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { loginUser } from "@/lib/api-proxy";
+import { useAuth } from "@/contexts/auth-context";
 
 // Define login form schema
 const loginSchema = z.object({
@@ -24,6 +26,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<LoginFormValues>({
@@ -39,26 +42,19 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const response = await apiRequest({
-        url: "/api/auth/login",
-        method: "POST",
-        data,
-      });
-      
-      // Store user authentication data in localStorage
-      localStorage.setItem("user", JSON.stringify({
-        id: response.id,
-        username: response.username,
-        token: response.token
-      }));
+      // Use the auth context login function which handles both direct API and standard API calls
+      await login(data.email, data.password);
       
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${response.username}!`,
+        description: "Welcome back! Redirecting to dashboard...",
       });
       
-      // Redirect to dashboard after successful login
-      setLocation("/dashboard");
+      // The redirect should happen automatically in the auth context login function,
+      // but we'll add it here as a fallback with a slight delay
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 500);
     } catch (error: any) {
       toast({
         variant: "destructive",

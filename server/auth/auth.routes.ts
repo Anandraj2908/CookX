@@ -1,8 +1,10 @@
-import { Router, Request, Response } from "express";
-import mongoose from "mongoose";
-import User from "../models/user.model";
-import auth from "../middleware/auth.middleware";
-import { log } from "../vite";
+import { Router, Request, Response } from 'express';
+import User from '../models/user.model';
+import { auth } from '../middleware/auth.middleware';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
 
 const router = Router();
 
@@ -13,42 +15,24 @@ const router = Router();
 router.post("/signup", async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
-    
+
     // Validate input
     if (!username || !email || !password) {
-      log("Signup validation error: Missing required fields", "auth");
-      return res.status(400).json({
-        error: "All fields are required: username, email, and password"
-      });
-    }
-    
-    if (password.length < 6) {
-      log("Signup validation error: Password too short", "auth");
-      return res.status(400).json({
-        error: "Password must be at least 6 characters long"
-      });
-    }
-    
-    // Check MongoDB connection status
-    if (mongoose.connection.readyState !== 1) {
-      log("Signup error: MongoDB not connected. Current state: " + mongoose.connection.readyState, "auth");
-      return res.status(503).json({
-        error: "Database service unavailable. Please try again later."
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        required: ['username', 'email', 'password']
       });
     }
 
-    // Log the attempt
-    log(`Signup attempt for username: ${username}, email: ${email}`, "auth");
-
-    // Check if user with same email or username already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { username }]
     });
 
     if (existingUser) {
-      log(`Signup failed: User already exists with email: ${email} or username: ${username}`, "auth");
-      return res.status(400).json({
-        error: "User already exists with this email or username",
+      return res.status(400).json({ 
+        message: existingUser.email === email ? 
+          'Email already in use' : 'Username already taken' 
       });
     }
 
@@ -56,59 +40,52 @@ router.post("/signup", async (req: Request, res: Response) => {
     const user = new User({
       username,
       email,
-      password,
+      password, // Will be hashed by pre-save hook
     });
 
     // Save user to database
-    await user.save();
-    log(`User created successfully: ${username}`, "auth");
+    const savedUser = await user.save();
 
-    // Generate auth token
-    const token = user.generateAuthToken();
-    log(`Auth token generated for user: ${username}`, "auth");
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: savedUser._id },
+      process.env.JWT_SECRET || 'fallback_secret_for_dev',
+      { expiresIn: '30d' }
+    );
 
-    // Set token as cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
+    // Set cookie
+    res.setHeader(
+      'Set-Cookie',
+      cookie.serialize('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/'
+      })
+    );
+
+    // Return user info (without password)
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: {
+        id: savedUser._id,
+        username: savedUser.username,
+        email: savedUser.email
+      },
+      token
     });
-
-    // Return user data (excluding password)
-    const response = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      createdAt: user.createdAt,
-      token,
-    };
+  } catch (error) {
+    console.error('Registration error:', error);
     
-    log(`Signup success response sent for user: ${username}`, "auth");
-    res.status(201).json(response);
-  } catch (error: any) {
-    const errorMessage = error.message || "Unknown error";
-    log(`Signup error: ${errorMessage}`, "auth");
-    
-    // Check for MongoDB validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors)
-        .map((err: any) => err.message)
-        .join(', ');
-      
+    if ((error as any).name === 'ValidationError') {
       return res.status(400).json({ 
-        error: `Validation error: ${validationErrors}` 
+        message: 'Validation error',
+        errors: (error as any).errors
       });
     }
     
-    // Check for MongoDB duplicate key error
-    if (error.code === 11000) {
-      return res.status(400).json({ 
-        error: "User with this email or username already exists" 
-      });
-    }
-    
-    res.status(500).json({ error: "Server error during registration" });
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
@@ -119,66 +96,59 @@ router.post("/signup", async (req: Request, res: Response) => {
 router.post("/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
+
     // Validate input
     if (!email || !password) {
-      log("Login validation error: Missing required fields", "auth");
-      return res.status(400).json({
-        error: "Email and password are required"
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        required: ['email', 'password']
       });
     }
-    
-    // Check MongoDB connection status
-    if (mongoose.connection.readyState !== 1) {
-      log("Login error: MongoDB not connected. Current state: " + mongoose.connection.readyState, "auth");
-      return res.status(503).json({
-        error: "Database service unavailable. Please try again later."
-      });
-    }
-    
-    log(`Login attempt for email: ${email}`, "auth");
 
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      log(`Login failed: No user found with email: ${email}`, "auth");
-      return res.status(401).json({ error: "Invalid login credentials" });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      log(`Login failed: Invalid password for email: ${email}`, "auth");
-      return res.status(401).json({ error: "Invalid login credentials" });
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate auth token
-    const token = user.generateAuthToken();
-    log(`Auth token generated for user: ${user.username}`, "auth");
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || 'fallback_secret_for_dev',
+      { expiresIn: '30d' }
+    );
 
-    // Set token as cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
+    // Set cookie
+    res.setHeader(
+      'Set-Cookie',
+      cookie.serialize('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/'
+      })
+    );
+
+    // Return user info (without password)
+    res.json({
+      message: 'Login successful',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      },
+      token
     });
-
-    // Return user data
-    const response = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      createdAt: user.createdAt,
-      token,
-    };
-    
-    log(`Login success response sent for user: ${user.username}`, "auth");
-    res.json(response);
-  } catch (error: any) {
-    const errorMessage = error.message || "Unknown error";
-    log(`Login error: ${errorMessage}`, "auth");
-    res.status(500).json({ error: "Server error during login" });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
@@ -187,9 +157,24 @@ router.post("/login", async (req: Request, res: Response) => {
  * Logout user
  */
 router.post("/logout", (req: Request, res: Response) => {
-  // Clear the auth cookie
-  res.clearCookie("token");
-  res.json({ message: "Logged out successfully" });
+  try {
+    // Clear cookie
+    res.setHeader(
+      'Set-Cookie',
+      cookie.serialize('token', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 0,
+        path: '/'
+      })
+    );
+
+    res.json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Server error during logout' });
+  }
 });
 
 /**
@@ -198,18 +183,20 @@ router.post("/logout", (req: Request, res: Response) => {
  */
 router.get("/me", auth, async (req: Request, res: Response) => {
   try {
-    // User is already attached to req by auth middleware
-    const user = req.user;
-    
-    res.json({
-      id: user?._id,
-      username: user?.username,
-      email: user?.email,
-      createdAt: user?.createdAt,
-    });
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ user });
   } catch (error) {
-    log(`Get profile error: ${error}`, "auth");
-    res.status(500).json({ error: "Server error fetching user profile" });
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ message: 'Server error fetching profile' });
   }
 });
 
@@ -219,35 +206,21 @@ router.get("/me", auth, async (req: Request, res: Response) => {
  */
 router.get("/db-status", async (_req: Request, res: Response) => {
   try {
-    const connectionState = mongoose.connection.readyState;
-    let status = "";
+    const status = mongoose.connection.readyState;
+    const statusMessage = 
+      status === 0 ? 'Disconnected' :
+      status === 1 ? 'Connected' :
+      status === 2 ? 'Connecting' :
+      status === 3 ? 'Disconnecting' : 'Unknown';
     
-    switch (connectionState) {
-      case 0:
-        status = "disconnected";
-        break;
-      case 1:
-        status = "connected";
-        break;
-      case 2:
-        status = "connecting";
-        break;
-      case 3:
-        status = "disconnecting";
-        break;
-      default:
-        status = "unknown";
-    }
-    
-    res.json({
-      status,
-      connectionState,
-      mongoVersion: mongoose.version,
-      readyState: mongoose.connection.readyState
+    res.json({ 
+      status, 
+      message: statusMessage,
+      database: mongoose.connection.name
     });
-  } catch (error: any) {
-    log(`DB status check error: ${error.message}`, "auth");
-    res.status(500).json({ error: "Error checking database status" });
+  } catch (error) {
+    console.error('DB status check error:', error);
+    res.status(500).json({ message: 'Server error checking database status' });
   }
 });
 

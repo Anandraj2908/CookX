@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { loginUser, signupUser, getCurrentUser, logoutUser } from "@/lib/api-proxy";
 
 // User type definition
 interface User {
@@ -51,16 +52,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           
-          // Verify token is still valid with backend
-          await apiRequest({
-            url: "/api/auth/me",
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${parsedUser.token}`,
-            },
-          });
+          // Try both methods to verify token is still valid with backend
+          try {
+            // First try the direct API call
+            await getCurrentUser();
+          } catch (directApiError) {
+            console.error('Direct API call failed, trying standard API request:', directApiError);
+            
+            // Fall back to standard API request
+            await apiRequest({
+              url: "/api/auth/me",
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${parsedUser.token}`,
+              },
+            });
+          }
         }
       } catch (error) {
+        console.error('Failed to verify authentication status:', error);
         // Clear invalid auth data
         localStorage.removeItem("user");
         setUser(null);
@@ -72,14 +82,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  // Login function
+  // Login function - now uses direct API call with fallback
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      const response = await apiRequest<User>({
-        url: "/api/auth/login",
-        method: "POST",
-        data: { email, password },
-      });
+      // Try direct API call first
+      let response;
+      
+      try {
+        response = await loginUser(email, password);
+        console.log('Login successful with direct API call');
+      } catch (directApiError) {
+        console.error('Direct API login failed, trying standard method:', directApiError);
+        
+        // Fall back to standard API request
+        response = await apiRequest<User>({
+          url: "/api/auth/login",
+          method: "POST",
+          data: { email, password },
+        });
+        console.log('Login successful with standard API request');
+      }
 
       const userData = {
         id: response.id,
@@ -92,18 +114,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       setLocation("/dashboard");
     } catch (error) {
+      console.error('All login attempts failed:', error);
       throw error;
     }
   };
 
-  // Signup function
+  // Signup function - now uses direct API call with fallback
   const signup = async (username: string, email: string, password: string): Promise<void> => {
     try {
-      const response = await apiRequest<User>({
-        url: "/api/auth/signup",
-        method: "POST",
-        data: { username, email, password },
-      });
+      // Try direct API call first
+      let response;
+      
+      try {
+        response = await signupUser(username, email, password);
+        console.log('Signup successful with direct API call');
+      } catch (directApiError) {
+        console.error('Direct API signup failed, trying standard method:', directApiError);
+        
+        // Fall back to standard API request
+        response = await apiRequest<User>({
+          url: "/api/auth/signup",
+          method: "POST",
+          data: { username, email, password },
+        });
+        console.log('Signup successful with standard API request');
+      }
 
       const userData = {
         id: response.id,
@@ -116,19 +151,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       setLocation("/dashboard");
     } catch (error) {
+      console.error('All signup attempts failed:', error);
       throw error;
     }
   };
 
-  // Logout function
+  // Logout function - now uses direct API call with fallback
   const logout = async (): Promise<void> => {
     try {
-      await apiRequest({
-        url: "/api/auth/logout",
-        method: "POST",
-      });
+      // Try direct API call first
+      try {
+        await logoutUser();
+        console.log('Logout successful with direct API call');
+      } catch (directApiError) {
+        console.error('Direct API logout failed, trying standard method:', directApiError);
+        
+        // Fall back to standard API request
+        await apiRequest({
+          url: "/api/auth/logout",
+          method: "POST",
+        });
+        console.log('Logout successful with standard API request');
+      }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("All logout attempts failed:", error);
     } finally {
       localStorage.removeItem("user");
       setUser(null);

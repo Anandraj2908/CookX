@@ -1,73 +1,91 @@
 import mongoose from 'mongoose';
-import connectToDatabase from './server/db/mongoose';
 import User from './server/models/user.model';
-
-const testUser = {
-  username: 'testuser',
-  email: 'test@example.com',
-  password: 'password123'
-};
+import { connectToDatabase } from './server/db/mongo-connect';
 
 async function testAuthentication() {
-  console.log("Starting authentication test...");
-  
   try {
+    console.log('Starting authentication test...');
+    
     // Connect to MongoDB
     await connectToDatabase();
+    console.log('Connected to MongoDB');
     
-    // Check connection status
-    if (mongoose.connection.readyState !== 1) {
-      console.error(`MongoDB not connected. Current state: ${mongoose.connection.readyState}`);
-      return;
+    // Create a test user
+    const testUsername = `testuser_${Date.now()}`;
+    const testEmail = `testuser_${Date.now()}@example.com`;
+    const testPassword = 'Password123!';
+    
+    console.log(`Creating test user: ${testUsername}`);
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      $or: [{ username: testUsername }, { email: testEmail }]
+    });
+    
+    if (existingUser) {
+      console.log('Test user already exists, deleting...');
+      await User.deleteOne({ _id: existingUser._id });
     }
     
-    console.log("Successfully connected to MongoDB");
+    // Create new user
+    const user = new User({
+      username: testUsername,
+      email: testEmail,
+      password: testPassword
+    });
     
-    // Clear previous test user if exists
-    await User.deleteOne({ email: testUser.email });
-    console.log("Cleaned up previous test data");
-    
-    // Create a new user
-    const user = new User(testUser);
-    await user.save();
-    console.log("Created test user:", user.username);
-    
-    // Check if user exists and password validation works
-    const foundUser = await User.findOne({ email: testUser.email });
-    if (!foundUser) {
-      throw new Error("Created user not found");
-    }
-    
-    console.log("Found user:", foundUser.username);
+    // Save user to database
+    const savedUser = await user.save();
+    console.log('Test user created successfully:', savedUser._id);
     
     // Test password comparison
-    const validPassword = await foundUser.comparePassword(testUser.password);
-    console.log("Password validation:", validPassword ? "SUCCESS" : "FAILED");
+    console.log('\nTesting password comparison...');
+    const validPassword = await savedUser.comparePassword(testPassword);
+    console.log('Valid password check:', validPassword ? 'PASSED ✓' : 'FAILED ✗');
     
-    // Generate and verify JWT token
-    const token = foundUser.generateAuthToken();
-    console.log("Generated JWT token:", token.substring(0, 20) + "...");
+    const invalidPassword = await savedUser.comparePassword('wrongpassword');
+    console.log('Invalid password check:', !invalidPassword ? 'PASSED ✓' : 'FAILED ✗');
     
-    // Clean up
-    await User.deleteOne({ email: testUser.email });
-    console.log("Test cleanup complete");
+    // Test JWT token generation
+    console.log('\nTesting JWT token generation...');
+    const token = savedUser.generateAuthToken();
+    console.log('Token generated:', token ? 'PASSED ✓' : 'FAILED ✗');
     
-    console.log("Authentication test complete");
-  } catch (error) {
-    console.error("Authentication test failed:", error);
-  } finally {
-    // Close the MongoDB connection
+    // Clean up - delete test user
+    console.log('\nCleaning up - deleting test user...');
+    await User.deleteOne({ _id: savedUser._id });
+    console.log('Test user deleted');
+    
+    console.log('\nAll tests completed successfully!');
+    
+    // Close the database connection
     await mongoose.connection.close();
-    console.log("MongoDB connection closed");
+    console.log('Database connection closed');
+    
+    return true;
+  } catch (error) {
+    console.error('Authentication test failed:', error);
+    
+    // Close database connection if open
+    try {
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.connection.close();
+        console.log('Database connection closed after error');
+      }
+    } catch (closeErr) {
+      console.error('Error closing database connection:', closeErr);
+    }
+    
+    return false;
   }
 }
 
+// Run the test if executed directly
 testAuthentication()
-  .then(() => {
-    console.log("Test script completed");
-    process.exit(0);
+  .then(success => {
+    process.exit(success ? 0 : 1);
   })
-  .catch(error => {
-    console.error("Test script error:", error);
+  .catch(err => {
+    console.error('Unexpected error:', err);
     process.exit(1);
   });

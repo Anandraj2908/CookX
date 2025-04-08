@@ -2,11 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cookieParser from "cookie-parser";
-import connectToDatabase from "./db/mongoose";
+import { connectToDatabase } from "./db/mongo-connect";
 import authRoutes from "./auth/auth.routes";
 
 // Connect to MongoDB
-connectToDatabase();
+connectToDatabase().catch(err => {
+  console.error("Failed to connect to MongoDB:", err);
+  process.exit(1);
+});
 
 const app = express();
 app.use(express.json());

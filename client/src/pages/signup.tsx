@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { signupUser } from "@/lib/api-proxy";
+import { useAuth } from "@/contexts/auth-context";
 
 // Define signup form schema
 const signupSchema = z.object({
@@ -29,6 +31,7 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { signup } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<SignupFormValues>({
@@ -51,33 +54,19 @@ export default function Signup() {
       
       console.log("Signing up with data:", signupData);
       
-      const response = await apiRequest<{ token: string; username: string; id: string; email?: string }>({
-        url: "/api/auth/signup",
-        method: "POST",
-        data: signupData,
-      });
-      
-      console.log("Signup response:", response);
-      
-      if (!response || !response.token) {
-        throw new Error("Invalid server response. Token not received.");
-      }
-      
-      // Store user authentication data in localStorage
-      localStorage.setItem("user", JSON.stringify({
-        id: response.id,
-        username: response.username,
-        email: response.email,
-        token: response.token
-      }));
+      // Use the auth context signup function which handles both direct API and standard API calls
+      await signup(signupData.username, signupData.email, signupData.password);
       
       toast({
         title: "Account Created",
-        description: "Your account has been created successfully!",
+        description: "Your account has been created successfully! Redirecting to dashboard...",
       });
       
-      // Redirect to dashboard after successful signup
-      setLocation("/dashboard");
+      // The redirect should happen automatically in the auth context signup function,
+      // but we'll add it here as a fallback with a slight delay
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 500);
     } catch (error: any) {
       console.error("Signup error:", error);
       

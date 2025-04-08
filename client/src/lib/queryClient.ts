@@ -20,9 +20,15 @@ export async function apiRequest<T = any>({
   data,
   headers = {},
 }: ApiRequestOptions): Promise<T> {
+  console.log(`Making API request to ${url} with method ${method}`);
+  
   // Get auth token from localStorage if available
   const userStr = localStorage.getItem('user');
-  let authHeaders = { ...headers };
+  let authHeaders: Record<string, string> = { 
+    ...headers,
+    // Add Accept header to explicitly request JSON responses
+    'Accept': 'application/json'
+  };
   
   if (userStr) {
     try {
@@ -46,12 +52,28 @@ export async function apiRequest<T = any>({
     };
   }
   
+  console.log('Request headers:', authHeaders);
+  
   const res = await fetch(url, {
     method,
     headers: authHeaders,
     body: data ? JSON.stringify(data) : undefined,
     credentials: 'include',
   });
+  
+  // Check if we got HTML instead of JSON
+  const contentType = res.headers.get('content-type');
+  if (contentType && contentType.includes('text/html')) {
+    console.error('Received HTML response instead of JSON. API route handling issue detected.');
+    const htmlContent = await res.text();
+    console.error('HTML response preview:', htmlContent.substring(0, 100) + '...');
+    
+    // Throw a more helpful error
+    throw new Error(
+      'Server returned HTML instead of JSON. This is likely a routing issue. ' +
+      'Please contact the development team.'
+    );
+  }
 
   await throwIfResNotOk(res);
   
@@ -60,7 +82,9 @@ export async function apiRequest<T = any>({
     return {} as T;
   }
   
-  return await res.json() as T;
+  const jsonResponse = await res.json() as T;
+  console.log('API response:', jsonResponse);
+  return jsonResponse;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -69,16 +93,37 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    console.log(`Making query to ${queryKey[0]}`);
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        'Accept': 'application/json'
+      } as Record<string, string>
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
     }
 
+    // Check if we got HTML instead of JSON
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      console.error('Received HTML response instead of JSON in query. API route handling issue detected.');
+      const htmlContent = await res.text();
+      console.error('HTML response preview:', htmlContent.substring(0, 100) + '...');
+      
+      // Throw a more helpful error
+      throw new Error(
+        'Server returned HTML instead of JSON. This is likely a routing issue. ' +
+        'Please contact the development team.'
+      );
+    }
+    
     await throwIfResNotOk(res);
-    return await res.json();
+    const jsonResponse = await res.json();
+    console.log('Query response:', jsonResponse);
+    return jsonResponse;
   };
 
 export const queryClient = new QueryClient({
