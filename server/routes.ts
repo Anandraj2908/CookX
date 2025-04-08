@@ -531,13 +531,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get the API key from environment
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.OPENROUTER_API_KEY;
       
       if (!apiKey) {
-        throw new Error("Gemini API key not found in server environment");
+        throw new Error("OpenRouter API key not found in server environment");
       }
 
-      // Format ingredients into a list
+      // Format ingredients into a list for the prompt
       const ingredientList = ingredients.map(ing => 
         `${ing.name} (${ing.quantity} ${ing.unit}, stored in ${ing.location})`
       ).join("\n");
@@ -570,58 +570,42 @@ INSTRUCTIONS:
 Only include recipes that I can make with the provided ingredients, with minimal additional ingredients. Follow the user preferences strictly.
 `;
 
-      // Call the Gemini API
+      // Call the OpenRouter API to access Gemini via OpenAI-compatible interface
       let responseText: string;
       
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: prompt }
-                ]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 2048,
-            }
-          })
+        // Import OpenAI library
+        const { OpenAI } = await import("openai");
+        
+        // Initialize OpenAI client with OpenRouter base URL
+        const client = new OpenAI({
+          baseURL: "https://openrouter.ai/api/v1",
+          apiKey: apiKey,
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Gemini API error response:", errorText);
-          return res.status(response.status).json({ 
-            error: `Gemini API error: ${errorText}` 
-          });
-        }
-
-        const responseData = await response.json();
-        console.log("Gemini API response:", JSON.stringify(responseData));
-        
-        // Type assertions to handle TypeScript issues
-        const geminiResponse = responseData as GeminiResponse;
-        
-        if (!geminiResponse.candidates || geminiResponse.candidates.length === 0) {
-          if (geminiResponse.promptFeedback?.blockReason) {
-            return res.status(400).json({
-              error: `Content blocked by Gemini API: ${geminiResponse.promptFeedback.blockReason}`
-            });
+        // Make the API call using OpenAI-compatible interface
+        const completion = await client.chat.completions.create({
+          model: "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini 2.5 Pro model via OpenRouter
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2048,
+          extra_headers: {
+            "HTTP-Referer": "https://kitchen-buddy.replit.app", // Optional site URL
+            "X-Title": "Kitchen Buddy App" // Optional site title
           }
-          return res.status(500).json({
-            error: "No response from Gemini API"
-          });
-        }
+        });
 
-        responseText = geminiResponse.candidates[0]?.content?.parts[0]?.text || "";
+        // Extract the response text
+        responseText = completion.choices[0]?.message?.content || "";
+        console.log("OpenRouter API response:", JSON.stringify(completion));
+        
         if (!responseText) {
-          throw new Error("Invalid response format from Gemini API");
+          throw new Error("No response received from Gemini via OpenRouter");
         }
       } catch (apiError) {
         console.error("API call error:", apiError);
