@@ -95,9 +95,9 @@ const RecipeCard = ({ recipe, onEdit, onAddToMealPlan }: RecipeCardProps) => {
                 <MoreVertical className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit && onEdit(recipe)}>
+                <DropdownMenuItem onClick={() => window.open(`#/recipes/${recipe.id}`, "_blank")}>
                   <Edit className="mr-2 h-4 w-4" />
-                  <span>Edit</span>
+                  <span>View Details</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onAddToMealPlan && onAddToMealPlan(recipe)}>
                   <CalendarPlus className="mr-2 h-4 w-4" />

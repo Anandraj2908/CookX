@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
+import { useToast } from "@/hooks/use-toast";
 
 // Components
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -16,13 +17,15 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   BellRing, 
   Moon, 
   Save, 
   Settings as SettingsIcon, 
   Sun, 
-  User
+  User,
+  UtensilsCrossed
 } from "lucide-react";
 
 export default function Settings() {
@@ -30,6 +33,25 @@ export default function Settings() {
   const [daysThreshold, setDaysThreshold] = useState(3);
   const [lowQuantityAlerts, setLowQuantityAlerts] = useState(true);
   const [mealReminders, setMealReminders] = useState(false);
+  const [dietaryPreferences, setDietaryPreferences] = useState<string>("");
+  const { toast } = useToast();
+  
+  // Load preferences from localStorage on component mount
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem("dietaryPreferences");
+    if (savedPreferences) {
+      setDietaryPreferences(savedPreferences);
+    }
+  }, []);
+  
+  // Save dietary preferences to localStorage
+  const saveDietaryPreferences = () => {
+    localStorage.setItem("dietaryPreferences", dietaryPreferences);
+    toast({
+      title: "Preferences Saved",
+      description: "Your dietary preferences have been saved successfully."
+    });
+  };
   
   return (
     <div className="space-y-6">
@@ -38,8 +60,9 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-md grid-cols-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="dietary">Dietary</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
         </TabsList>
@@ -106,6 +129,55 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Dietary Preferences */}
+        <TabsContent value="dietary">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5" />
+                Dietary Preferences
+              </CardTitle>
+              <CardDescription>
+                Set your dietary preferences for recipe recommendations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="dietary-preferences">
+                  Your Dietary Preferences & Constraints
+                </Label>
+                <Textarea 
+                  id="dietary-preferences"
+                  placeholder="Enter your dietary preferences and constraints here. For example: vegetarian, gluten-free, low-carb, Indian cuisine, no seafood, etc."
+                  className="min-h-32 resize-y"
+                  value={dietaryPreferences}
+                  onChange={(e) => setDietaryPreferences(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your preferences will be used to generate recipe recommendations that match your dietary needs and cuisine preferences.
+                </p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Example Preferences:</p>
+                <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                  <li>Dietary restrictions: vegetarian, vegan, gluten-free, dairy-free, nut-free, etc.</li>
+                  <li>Cuisine preferences: Italian, Indian, Mexican, Chinese, etc.</li>
+                  <li>Regional specialties: Bihari cuisine, Southern Italian, Northern Thai, etc.</li>
+                  <li>Cooking style: quick meals, one-pot dishes, meal prep friendly, etc.</li>
+                  <li>Health goals: low-carb, high-protein, low-sodium, etc.</li>
+                </ul>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={saveDietaryPreferences} className="w-full">
+                <Save className="mr-2 h-4 w-4" />
+                Save Preferences
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
         
