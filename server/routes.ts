@@ -528,51 +528,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const apiKey = process.env.GEMINI_API_KEY;
       
       if (!apiKey) {
-        return res.status(500).json({ error: "Gemini API key not found" });
-      }
-      
-      try {
-        // Call Gemini API directly with fetch
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: "Hello! Please respond with a simple test recipe for cookies."
-                    }
-                  ]
-                }
-              ],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 500,
-              },
-            })
-          }
-        );
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Gemini API error: ${errorText}`);
-        }
-        
-        const data = await response.json() as GeminiResponse;
-        
-        // Extract and return the response
-        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No content received";
-        
-        // Return the response to check if the API call works
-        return res.json({
-          message: "Gemini API test successful",
-          response: responseText
+        return res.status(500).json({ 
+          error: "Gemini API key not found in environment variables" 
         });
+      }
+
+      // Import and use our updated Gemini client
+      const { createGeminiClient } = await import('./gemini_client');
+      const geminiClient = createGeminiClient(apiKey);
+
+      try {
+        // Test Gemini API connection using the client
+        const result = await geminiClient.testConnection();
+        return res.json(result);
       } catch (apiError) {
         console.error("Gemini API test error:", apiError);
         return res.status(500).json({ 
@@ -593,102 +561,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Ingredients must be an array" });
       }
 
-      // Dummy apiKey declaration for compatibility with existing code
-      // The actual API key will be fetched in the try block
-      const apiKey = "placeholder";
-
-      // Format ingredients into a list for the prompt
-      const ingredientList = ingredients.map(ing => 
-        `${ing.name} (${ing.quantity} ${ing.unit}, stored in ${ing.location})`
-      ).join("\n");
-
-      // Create the prompt for Gemini
-      const prompt = `
-I have the following ingredients:
-${ingredientList}
-
-User preferences: ${preferences || "No specific preferences"}
-
-Based on these ingredients and preferences, suggest 3 recipes I can make.
-
-Format each recipe as follows:
-RECIPE NAME: [name]
-CUISINE: [cuisine type]
-DIETARY INFO: [vegetarian, vegan, gluten-free, etc.]
-PREP TIME: [minutes]
-COOK TIME: [minutes]
-SERVINGS: [number]
-INGREDIENTS:
-- [ingredient with quantity]
-- [ingredient with quantity]
-...
-INSTRUCTIONS:
-1. [step]
-2. [step]
-...
-
-Only include recipes that I can make with the provided ingredients, with minimal additional ingredients. Follow the user preferences strictly.
-`;
-
-      // Call the Gemini API directly
-      let responseText: string;
+      const apiKey = process.env.GEMINI_API_KEY;
       
+      if (!apiKey) {
+        return res.status(500).json({ 
+          error: "Gemini API key not found in environment variables" 
+        });
+      }
+
+      // Import and use our updated Gemini client
+      const { createGeminiClient } = await import('./gemini_client');
+      const geminiClient = createGeminiClient(apiKey);
+
       try {
-        // Use Node fetch to call Gemini API directly
-        const apiKey = process.env.GEMINI_API_KEY;
+        // Get recipe recommendations using the client
+        const responseText = await geminiClient.getRecipeRecommendations(ingredients, preferences);
         
-        if (!apiKey) {
-          throw new Error("GEMINI_API_KEY not found in environment");
-        }
+        // Parse the recipes from the response text using our client method
+        const recipes = geminiClient.parseRecipesFromResponse(responseText);
         
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: prompt
-                    }
-                  ]
-                }
-              ],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 2048,
-              },
-            })
-          }
-        );
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Gemini API error: ${errorText}`);
-        }
-        
-        const data = await response.json() as GeminiResponse;
-        
-        // Extract the text from Gemini response
-        responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        console.log("Gemini API response:", JSON.stringify(data));
-        
-        if (!responseText) {
-          throw new Error("No response received from Gemini API");
-        }
+        res.json(recipes);
       } catch (apiError) {
         console.error("API call error:", apiError);
         return res.status(500).json({ 
           error: apiError instanceof Error ? apiError.message : "Error calling Gemini API"
         });
       }
-      const recipes = parseRecipesFromResponse(responseText);
-      
-      res.json(recipes);
     } catch (error) {
       console.error("Error generating AI recipes:", error);
       res.status(500).json({ 
