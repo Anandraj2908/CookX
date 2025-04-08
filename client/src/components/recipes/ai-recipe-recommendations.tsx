@@ -62,7 +62,11 @@ export default function AIRecipeRecommendations() {
       }
     } catch (err) {
       console.error("Error generating recipes:", err);
-      setError("Failed to generate recipe recommendations. Please try again later.");
+      // Show a more detailed error message
+      const errorMessage = err instanceof Error ? 
+        `${err.message}` : 
+        "Failed to generate recipe recommendations. Please try again later.";
+      setError(errorMessage);
       toast({
         title: "Error",
         description: "Failed to generate recipe recommendations",

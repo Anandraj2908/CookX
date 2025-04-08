@@ -10,6 +10,35 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+import fetch from 'node-fetch';
+
+// Interface for recipe recommendation
+interface RecipeRecommendation {
+  name: string;
+  ingredients: string[];
+  instructions: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  imageUrl?: string;
+  cuisine?: string;
+  dietaryInfo?: string[];
+}
+
+// Define a type for the Gemini API response
+interface GeminiResponse {
+  candidates?: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
+    };
+  }>;
+  promptFeedback?: {
+    blockReason?: string;
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Inventory routes
   app.get("/api/inventory", async (req, res) => {
@@ -491,6 +520,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to generate recipe suggestions" });
     }
   });
+
+  // Gemini AI Recipe Generation endpoint
+  app.post("/api/ai-recipes", async (req, res) => {
+    try {
+      const { ingredients, preferences } = req.body;
+      
+      if (!Array.isArray(ingredients)) {
+        return res.status(400).json({ message: "Ingredients must be an array" });
+      }
+
+      // Get the API key from environment
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error("Gemini API key not found in server environment");
+      }
+
+      // Format ingredients into a list
+      const ingredientList = ingredients.map(ing => 
+        `${ing.name} (${ing.quantity} ${ing.unit}, stored in ${ing.location})`
+      ).join("\n");
+
+      // Create the prompt for Gemini
+      const prompt = `
+I have the following ingredients:
+${ingredientList}
+
+User preferences: ${preferences || "No specific preferences"}
+
+Based on these ingredients and preferences, suggest 3 recipes I can make.
+
+Format each recipe as follows:
+RECIPE NAME: [name]
+CUISINE: [cuisine type]
+DIETARY INFO: [vegetarian, vegan, gluten-free, etc.]
+PREP TIME: [minutes]
+COOK TIME: [minutes]
+SERVINGS: [number]
+INGREDIENTS:
+- [ingredient with quantity]
+- [ingredient with quantity]
+...
+INSTRUCTIONS:
+1. [step]
+2. [step]
+...
+
+Only include recipes that I can make with the provided ingredients, with minimal additional ingredients. Follow the user preferences strictly.
+`;
+
+      // Call the Gemini API
+      let responseText: string;
+      
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Gemini API error response:", errorText);
+          return res.status(response.status).json({ 
+            error: `Gemini API error: ${errorText}` 
+          });
+        }
+
+        const responseData = await response.json();
+        console.log("Gemini API response:", JSON.stringify(responseData));
+        
+        // Type assertions to handle TypeScript issues
+        const geminiResponse = responseData as GeminiResponse;
+        
+        if (!geminiResponse.candidates || geminiResponse.candidates.length === 0) {
+          if (geminiResponse.promptFeedback?.blockReason) {
+            return res.status(400).json({
+              error: `Content blocked by Gemini API: ${geminiResponse.promptFeedback.blockReason}`
+            });
+          }
+          return res.status(500).json({
+            error: "No response from Gemini API"
+          });
+        }
+
+        responseText = geminiResponse.candidates[0]?.content?.parts[0]?.text || "";
+        if (!responseText) {
+          throw new Error("Invalid response format from Gemini API");
+        }
+      } catch (apiError) {
+        console.error("API call error:", apiError);
+        return res.status(500).json({ 
+          error: apiError instanceof Error ? apiError.message : "Error calling Gemini API"
+        });
+      }
+      const recipes = parseRecipesFromResponse(responseText);
+      
+      res.json(recipes);
+    } catch (error) {
+      console.error("Error generating AI recipes:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Unknown error generating recipes" 
+      });
+    }
+  });
+
+  // Helper function to parse recipes from Gemini API response
+  function parseRecipesFromResponse(responseText: string): RecipeRecommendation[] {
+    const recipes: RecipeRecommendation[] = [];
+    
+    // Split the response into separate recipes
+    const recipeBlocks = responseText.split(/RECIPE NAME:/i).slice(1);
+    
+    for (const block of recipeBlocks) {
+      try {
+        const nameMatch = block.trim().match(/^(.*?)(?=\n)/);
+        const cuisineMatch = block.match(/CUISINE:\s*(.*?)(?=\n)/i);
+        const dietaryMatch = block.match(/DIETARY INFO:\s*(.*?)(?=\n)/i);
+        const prepTimeMatch = block.match(/PREP TIME:\s*(\d+)/i);
+        const cookTimeMatch = block.match(/COOK TIME:\s*(\d+)/i);
+        const servingsMatch = block.match(/SERVINGS:\s*(\d+)/i);
+        
+        // Use safer regex without 's' flag for cross-browser compatibility
+        const ingredientsSection = block.match(/INGREDIENTS:([^]*?)INSTRUCTIONS:/i);
+        const instructionsSection = block.match(/INSTRUCTIONS:([^]*?)(?=\n\n|$)/i);
+        
+        const ingredients = ingredientsSection ? 
+          ingredientsSection[1].trim().split(/\n\s*-\s*/).filter(i => i.trim()) : [];
+        
+        const instructions = instructionsSection ? 
+          instructionsSection[1].trim() : "";
+        
+        if (nameMatch) {
+          recipes.push({
+            name: nameMatch[1].trim(),
+            cuisine: cuisineMatch ? cuisineMatch[1].trim() : undefined,
+            dietaryInfo: dietaryMatch ? 
+              dietaryMatch[1].split(',').map(item => item.trim()) : undefined,
+            prepTime: prepTimeMatch ? parseInt(prepTimeMatch[1]) : 0,
+            cookTime: cookTimeMatch ? parseInt(cookTimeMatch[1]) : 0,
+            servings: servingsMatch ? parseInt(servingsMatch[1]) : 4,
+            ingredients: ingredients,
+            instructions: instructions,
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing recipe:", e);
+        // Continue to the next recipe if parsing fails
+      }
+    }
+    
+    return recipes;
+  }
 
   const httpServer = createServer(app);
   return httpServer;
