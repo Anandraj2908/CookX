@@ -1,127 +1,62 @@
 import { useQuery } from "@tanstack/react-query";
 import { InventoryItem } from "@shared/schema";
-import { formatDate, getExpiryStatusColor } from "@/lib/utils";
-import {
-  AlertCircle,
-  AlertTriangle,
-  CookingPot,
-  Package2
-} from "lucide-react";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+import { formatExpiryDate } from "@/lib/utils";
+import { AlertCircle, X } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 interface ItemExpiryAlertProps {
   daysThreshold: number;
 }
 
 const ItemExpiryAlert = ({ daysThreshold = 7 }: ItemExpiryAlertProps) => {
-  const { data: expiringItems, isLoading, error } = useQuery<InventoryItem[]>({
+  const [dismissed, setDismissed] = useState(false);
+
+  // Fetch expiring items based on threshold
+  const { data: expiringItems, isLoading } = useQuery<InventoryItem[]>({
     queryKey: [`/api/inventory/expiring/${daysThreshold}`],
   });
 
-  if (isLoading) {
-    return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Checking for expiring items...</AlertTitle>
-      </Alert>
-    );
-  }
-
-  if (error || !expiringItems) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>Failed to load expiring items.</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (expiringItems.length === 0) {
+  if (dismissed || isLoading || !expiringItems || expiringItems.length === 0) {
     return null;
   }
 
-  // Sort items by expiry date (soonest first)
-  const sortedItems = [...expiringItems].sort((a, b) => {
-    if (!a.expiryDate) return 1;
-    if (!b.expiryDate) return -1;
-    return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
-  });
-
-  const criticalItems = sortedItems.filter(
-    item => item.expiryDate && new Date(item.expiryDate) <= new Date(new Date().setDate(new Date().getDate() + 2))
-  );
-
-  if (criticalItems.length > 0) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Critical: Items Expiring Soon</AlertTitle>
-        <AlertDescription>
-          <div className="mt-2">
-            <ul className="space-y-1">
-              {criticalItems.map((item) => (
-                <li key={item.id} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    {item.location === "Fridge" ? (
-                      <CookingPot className="h-4 w-4 mr-1.5" />
-                    ) : (
-                      <Package2 className="h-4 w-4 mr-1.5" />
-                    )}
-                    <span>
-                      {item.name} ({item.quantity} {item.unit})
-                    </span>
-                  </div>
-                  <Badge variant="outline" className={getExpiryStatusColor(item.expiryDate)}>
-                    {item.expiryDate ? formatDate(item.expiryDate) : "No expiry date"}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
-    <Alert variant="warning">
-      <AlertTriangle className="h-4 w-4" />
-      <AlertTitle>Warning: Items Expiring Soon</AlertTitle>
-      <AlertDescription>
-        <div className="mt-2">
-          <ul className="space-y-1">
-            {sortedItems.slice(0, 3).map((item) => (
-              <li key={item.id} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  {item.location === "Fridge" ? (
-                    <CookingPot className="h-4 w-4 mr-1.5" />
-                  ) : (
-                    <Package2 className="h-4 w-4 mr-1.5" />
-                  )}
-                  <span>
-                    {item.name} ({item.quantity} {item.unit})
-                  </span>
-                </div>
-                <Badge variant="outline" className={getExpiryStatusColor(item.expiryDate)}>
-                  {item.expiryDate ? formatDate(item.expiryDate) : "No expiry date"}
-                </Badge>
-              </li>
-            ))}
-            {sortedItems.length > 3 && (
-              <li className="text-sm text-gray-500 italic">
-                And {sortedItems.length - 3} more item(s)...
-              </li>
-            )}
-          </ul>
+    <div className="bg-amber-50 border border-amber-200 rounded-md p-4 relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 h-6 w-6 text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+        onClick={() => setDismissed(true)}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+      <div className="flex items-start space-x-3">
+        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+        <div>
+          <h3 className="font-medium text-amber-800">
+            {expiringItems.length} {expiringItems.length === 1 ? "item" : "items"} expiring soon
+          </h3>
+          <p className="text-sm text-amber-700 mt-1">
+            {expiringItems.length > 3 
+              ? `${expiringItems.slice(0, 3).map(item => item.name).join(", ")} and ${expiringItems.length - 3} more ${expiringItems.length - 3 === 1 ? "item" : "items"} will expire within ${daysThreshold} days.`
+              : `${expiringItems.map(item => item.name).join(", ")} will expire within ${daysThreshold} days.`
+            }
+          </p>
+          <div className="mt-2 space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-amber-200 text-amber-700 hover:bg-amber-100 hover:text-amber-900"
+              asChild
+            >
+              <Link href="/recipes">Find recipes to use them</Link>
+            </Button>
+          </div>
         </div>
-      </AlertDescription>
-    </Alert>
+      </div>
+    </div>
   );
 };
 
