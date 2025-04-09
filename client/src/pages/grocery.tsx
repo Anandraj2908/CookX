@@ -1,6 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { GroceryItem, InventoryItem, Recipe } from "@shared/schema";
+// MongoDB interface for grocery items (extends the schema interface)
+interface MongoGroceryItem {
+  _id: string;
+  id: number;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  isPurchased: boolean;
+  isAddedToInventory: boolean;
+  notes?: string;
+  userId: string;
+  purchased?: boolean; // For compatibility with schema
+}
+
+import { InventoryItem, Recipe } from "@shared/schema";
 import { UNITS } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -66,7 +81,7 @@ export default function Grocery() {
   const [showCompleted, setShowCompleted] = useState(false);
 
   // Fetch grocery items
-  const { data: groceryItems, isLoading, isError } = useQuery<GroceryItem[]>({
+  const { data: groceryItems, isLoading, isError } = useQuery<MongoGroceryItem[]>({
     queryKey: ["/api/grocery-items"],
   });
 
@@ -93,9 +108,14 @@ export default function Grocery() {
   // Handle form submission
   const onSubmit = async (data: GroceryItemFormValues) => {
     try {
-      await apiRequest("POST", "/api/grocery-items", {
-        ...data,
-        purchased: false,
+      await apiRequest({
+        url: "/api/grocery-items",
+        method: "POST",
+        data: {
+          ...data,
+          isPurchased: false,
+          category: "Other",
+        }
       });
       
       toast({
@@ -119,9 +139,13 @@ export default function Grocery() {
   };
 
   // Handle item deletion
-  const handleDeleteItem = async (id: number) => {
+  const handleDeleteItem = async (item: MongoGroceryItem) => {
     try {
-      await apiRequest("DELETE", `/api/grocery-items/${id}`);
+      // Use MongoDB _id for operations
+      await apiRequest({
+        url: `/api/grocery-items/${item._id}`,
+        method: "DELETE"
+      });
       
       toast({
         title: "Success",
@@ -131,6 +155,7 @@ export default function Grocery() {
       // Invalidate queries to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ["/api/grocery-items"] });
     } catch (error) {
+      console.error("Delete item error:", error);
       toast({
         title: "Error",
         description: "Failed to remove item",
@@ -140,15 +165,19 @@ export default function Grocery() {
   };
 
   // Handle item purchase status toggle
-  const handleTogglePurchased = async (item: GroceryItem) => {
+  const handleTogglePurchased = async (item: MongoGroceryItem) => {
     try {
-      await apiRequest("PATCH", `/api/grocery-items/${item.id}`, {
-        purchased: !item.purchased,
+      // Use _id for MongoDB operations instead of id 
+      // The Mongo model uses _id as the unique identifier
+      await apiRequest({
+        url: `/api/grocery-items/${item._id}/toggle-purchased`,
+        method: "PATCH"
       });
       
       // Invalidate queries to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ["/api/grocery-items"] });
     } catch (error) {
+      console.error("Toggle purchase error:", error);
       toast({
         title: "Error",
         description: "Failed to update item status",
@@ -158,7 +187,7 @@ export default function Grocery() {
   };
 
   // Add item to inventory
-  const addToInventory = async (item: GroceryItem) => {
+  const addToInventory = async (item: MongoGroceryItem) => {
     try {
       // Default values for inventory item
       const inventoryItem = {
@@ -169,7 +198,11 @@ export default function Grocery() {
         location: "Pantry", // Default location
       };
       
-      await apiRequest("POST", "/api/inventory", inventoryItem);
+      await apiRequest({
+        url: "/api/inventory",
+        method: "POST",
+        data: inventoryItem
+      });
       
       toast({
         title: "Success",
@@ -192,7 +225,9 @@ export default function Grocery() {
     const matchesSearch = searchTerm === "" || 
       item.name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCompleted = showCompleted || !item.purchased;
+    // MongoDB uses isPurchased, but the schema interface uses purchased
+    const isPurchasedValue = (item as any).isPurchased || item.purchased;
+    const matchesCompleted = showCompleted || !isPurchasedValue;
     
     return matchesSearch && matchesCompleted;
   });
@@ -355,16 +390,16 @@ export default function Grocery() {
                 <div 
                   key={item.id} 
                   className={`p-3 rounded-md flex items-center justify-between gap-4 border border-[#2a2a35] ${
-                    item.purchased ? "bg-[#12121a] text-gray-500" : "bg-[#1a1a22]"
+                    (item.isPurchased || item.purchased) ? "bg-[#12121a] text-gray-500" : "bg-[#1a1a22]"
                   }`}
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <Checkbox 
-                      checked={item.purchased}
+                      checked={Boolean(item.isPurchased || item.purchased)}
                       onCheckedChange={() => handleTogglePurchased(item)}
                     />
                     <div>
-                      <p className={`font-medium ${item.purchased ? "line-through text-gray-500" : "text-white"}`}>
+                      <p className={`font-medium ${(item.isPurchased || item.purchased) ? "line-through text-gray-500" : "text-white"}`}>
                         {item.name}
                       </p>
                       <p className="text-sm text-gray-400">
@@ -373,7 +408,7 @@ export default function Grocery() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {item.purchased && (
+                    {(item.isPurchased || item.purchased) && (
                       <Button 
                         variant="ghost" 
                         size="icon"
@@ -386,7 +421,7 @@ export default function Grocery() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      onClick={() => handleDeleteItem(item.id)}
+                      onClick={() => handleDeleteItem(item)}
                       title="Remove item"
                     >
                       <Trash2 className="h-4 w-4" />

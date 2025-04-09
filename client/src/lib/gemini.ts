@@ -20,7 +20,7 @@ export async function getRecipeRecommendations(
     console.log("Calling server AI recipe endpoint with", ingredients.length, "ingredients");
     
     // Call the server-side endpoint instead of calling Gemini directly
-    const response = await fetch(`/api/ai-recipes`, {
+    const response = await fetch(`/api/generate-recipes`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -32,13 +32,23 @@ export async function getRecipeRecommendations(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("AI recipe generation error:", errorData);
-      throw new Error(errorData.error || "Failed to generate recipes");
+      let errorMessage = "Failed to generate recipes";
+      try {
+        const errorData = await response.json();
+        console.error("AI recipe generation error:", errorData);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+        console.error("Error parsing error response:", e);
+      }
+      throw new Error(errorMessage);
     }
 
-    const recipes = await response.json();
-    console.log("Server returned", recipes.length, "recipes");
+    const responseData = await response.json();
+    console.log("Server returned:", responseData);
+    
+    // The server response contains parsedRecipes and savedRecipes
+    const recipes = responseData.parsedRecipes || [];
+    console.log("Server returned", recipes.length, "parsed recipes");
     
     return recipes;
     

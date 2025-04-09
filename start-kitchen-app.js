@@ -1,5 +1,5 @@
-const { spawn } = require('child_process');
-const fs = require('fs');
+import { spawn } from 'child_process';
+import fs from 'fs';
 
 // Function to start the server with node
 async function startServer() {

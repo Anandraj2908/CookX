@@ -6,10 +6,12 @@ import fetch from 'node-fetch';
 import InventoryItem from './models/inventory.model';
 import Recipe from './models/recipe.model';
 import User from './models/user.model';
+import GroceryItem from './models/grocery.model';
 
 // Import route handlers
 import inventoryRoutes from './routes/inventory.routes';
 import recipeRoutes from './routes/recipe.routes';
+import groceryRoutes from './routes/grocery.routes';
 import authRoutes from './auth/auth.routes';
 
 // Import middleware
@@ -46,6 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register MongoDB routes
   app.use('/api/inventory', inventoryRoutes);
   app.use('/api/recipes', recipeRoutes);
+  app.use('/api/grocery-items', groceryRoutes);
   app.use('/api/auth', authRoutes);
 
   // Recipe Suggestion route
@@ -125,7 +128,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Gemini AI Recipe Generation endpoint
+  // Gemini AI Recipe Generation endpoints (two routes for compatibility)
+  app.post("/api/ai-recipes", auth, async (req: Request, res: Response) => {
+    // Forward to the generate-recipes endpoint 
+    req.url = "/api/generate-recipes";
+    app._router.handle(req, res);
+  });
+  
   app.post("/api/generate-recipes", auth, async (req: Request, res: Response) => {
     try {
       const { ingredients, preferences } = req.body;
